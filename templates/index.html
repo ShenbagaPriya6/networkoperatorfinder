@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Location</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: url("{{ url_for('static', filename='background.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            width: 600px;
+            height: 400px;
+        }
+        .container {
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: aliceblue;
+        }
+        form {
+            background-color: rgba(255, 255, 255, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            width: 600px;
+            margin-bottom: 20px;
+        }
+        #result {
+            display: none;
+            margin-top: 20px;
+            color: aliceblue;
+            text-decoration-style: solid;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Select Location</h1>
+        <form id="operatorForm">
+            <div id="map"></div>
+            <label for="latitude">Latitude:</label><br>
+            <input type="text" id="latitude" name="latitude"><br>
+            <label for="longitude">Longitude:</label><br>
+            <input type="text" id="longitude" name="longitude"><br><br>
+            <button type="button" id="predictButton">Predict Operator</button>
+        </form>
+        <div id="result"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var map = L.map('map').setView([20.5937, 78.9629], 5);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            var popup = L.popup();
+
+            function onMapClick(e) {
+                $("#latitude").val(e.latlng.lat);
+                $("#longitude").val(e.latlng.lng);
+                popup
+                    .setLatLng(e.latlng)
+                    .setContent(
+                        "Location selected: " + e.latlng.toString() 
+                    )
+                    .openOn(map);
+            }
+
+            map.on('click', onMapClick);
+
+            $("#predictButton").click(function() {
+                const latitude = $("#latitude").val();
+                const longitude = $("#longitude").val();
+
+                $.ajax({
+                    url: "/predict",
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ latitude, longitude }),
+                    success: function(data) {
+                        $("#predictButton").hide();
+                        $("#result").html("<p>Predicted Operator: " + data.operator + "</p>").show();
+                        $("#result").append("<p>Service (Indoor/Outdoor): " + data.inout_travelling + "</p>");
+                        $("#result").append("<p>Data Speed (Mbps): " + data.speed + "</p>");
+                    },
+                    error: function(error) {
+                        console.error("Error:", error);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
